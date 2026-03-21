@@ -40,6 +40,12 @@ export async function executeSubtask(params: {
       apiKey: agent.locusApiKey,
       systemPrompt,
       userMessage,
+      simulationType: 'specialist',
+      simulationContext: {
+        subtaskType: subtask.type,
+        subtaskDescription: subtask.description,
+        taskContext: taskDescription,
+      },
     });
 
     const result = parseJSON<SpecialistResult>(raw);

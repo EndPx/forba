@@ -2,7 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Task, Agent } from '../types';
 
 // ============================================================
-// In-Memory Data Store - Singleton
+// In-Memory Data Store - Global Singleton
+// Uses globalThis to survive Next.js module re-evaluation in dev
 // ============================================================
 
 class ForbaStore {
@@ -85,7 +86,7 @@ class ForbaStore {
       completedTasks: tasks.filter((t) => t.status === 'completed').length,
       activeTasks: tasks.filter((t) => ['pending', 'decomposing', 'in_progress'].includes(t.status)).length,
       totalAgents: this.agents.size,
-      totalPayments: 0, // Will be calculated from escrows
+      totalPayments: 0,
     };
   }
 
@@ -97,5 +98,11 @@ class ForbaStore {
   }
 }
 
-// Singleton export
-export const store = new ForbaStore();
+// Use globalThis to ensure true singleton across Next.js module re-evaluations
+const globalForStore = globalThis as unknown as { __forbaStore?: ForbaStore };
+
+if (!globalForStore.__forbaStore) {
+  globalForStore.__forbaStore = new ForbaStore();
+}
+
+export const store: ForbaStore = globalForStore.__forbaStore;

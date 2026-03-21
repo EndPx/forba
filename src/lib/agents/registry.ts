@@ -56,10 +56,10 @@ const DEFAULT_AGENTS: AgentSeed[] = [
   },
 ];
 
-let initialized = false;
+const globalForSeed = globalThis as unknown as { __forbaAgentsSeeded?: boolean };
 
 export async function seedAgents(): Promise<Agent[]> {
-  if (initialized && store.getAllAgents().length > 0) {
+  if (globalForSeed.__forbaAgentsSeeded && store.getAllAgents().length > 0) {
     console.log('Agents already seeded, skipping...');
     return store.getAllAgents();
   }
@@ -107,7 +107,7 @@ export async function seedAgents(): Promise<Agent[]> {
     }
   }
 
-  initialized = true;
+  globalForSeed.__forbaAgentsSeeded = true;
   return agents;
 }
 

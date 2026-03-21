@@ -60,5 +60,11 @@ class ForbaEventEmitter {
   }
 }
 
-// Singleton - survives across API route calls within the same process
-export const emitter = new ForbaEventEmitter();
+// Use globalThis to ensure true singleton across Next.js module re-evaluations
+const globalForEmitter = globalThis as unknown as { __forbaEmitter?: ForbaEventEmitter };
+
+if (!globalForEmitter.__forbaEmitter) {
+  globalForEmitter.__forbaEmitter = new ForbaEventEmitter();
+}
+
+export const emitter: ForbaEventEmitter = globalForEmitter.__forbaEmitter;

@@ -9,6 +9,8 @@ import { discoverAgents, selectBestAgent } from './registry';
 import { executeSubtask } from './specialist';
 import { createEscrow, releaseEscrow, refundEscrow } from '../payments/escrow';
 import { config } from '../config';
+import { isSimulationMode } from '../llm/simulator';
+import { createOnChainEscrow, releaseOnChainEscrow, refundOnChainEscrow } from '../contracts/forbaEscrow';
 
 // Get orchestrator's API key (first registered agent or env var)
 function getOrchestratorApiKey(): string {
@@ -28,11 +30,20 @@ function getOrchestratorAddress(): string {
   return '0x0000000000000000000000000000000000000000';
 }
 
+function hasOnChainEscrow(): boolean {
+  return !!process.env.NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS && !!process.env.DEPLOYER_PRIVATE_KEY;
+}
+
 export async function executeTask(taskId: string): Promise<void> {
   const task = store.getTask(taskId);
   if (!task) throw new Error(`Task not found: ${taskId}`);
 
   const orchestratorApiKey = getOrchestratorApiKey();
+  const simMode = isSimulationMode();
+
+  if (simMode) {
+    console.log(`[Orchestrator] Running in SIMULATION mode for task ${taskId}`);
+  }
 
   try {
     // Phase 1: Decompose
@@ -116,6 +127,8 @@ async function decomposeTask(task: Task, apiKey: string): Promise<Subtask[]> {
     apiKey,
     systemPrompt: SYSTEM_PROMPTS.decomposer,
     userMessage: buildDecompositionPrompt(task.description),
+    simulationType: 'decompose',
+    simulationContext: { taskDescription: task.description },
   });
 
   const result = parseJSON<DecompositionResult>(raw);
@@ -172,23 +185,64 @@ async function executeSubtaskFlow(
       },
     });
 
-    // Step 3: Create escrow
+    // Step 3: Create escrow (try on-chain first, then Locus, then skip)
     let escrow;
-    try {
-      escrow = await createEscrow({
-        taskId: task.id,
-        subtaskId: subtask.id,
-        clientAgentId: 'orchestrator',
-        providerAgentId: agent.id,
-        clientAddress: getOrchestratorAddress(),
-        providerAddress: agent.locusOwnerAddress,
-        clientApiKey: orchestratorApiKey,
-        amount: agent.pricing,
-      });
+    let onChainTxHash: string | undefined;
 
-      updateSubtask(task.id, subtask.id, { escrowId: escrow.id });
-    } catch (error) {
-      console.warn('Escrow creation failed (continuing without escrow):', error);
+    // Try on-chain escrow
+    if (hasOnChainEscrow()) {
+      try {
+        const escrowId = `${task.id}-${subtask.id}`;
+        const result = await createOnChainEscrow(escrowId, agent.locusOwnerAddress, agent.pricing);
+        onChainTxHash = result.txHash;
+
+        emitter.emit('escrow:created', {
+          taskId: task.id,
+          subtaskId: subtask.id,
+          agentId: agent.id,
+          message: `On-chain escrow created: ${agent.pricing} USDC locked`,
+          data: { txHash: result.txHash, escrowId, onChain: true },
+        });
+      } catch (error) {
+        console.warn('On-chain escrow failed (trying Locus fallback):', error);
+      }
+    }
+
+    // Try Locus escrow as fallback
+    if (!onChainTxHash) {
+      try {
+        escrow = await createEscrow({
+          taskId: task.id,
+          subtaskId: subtask.id,
+          clientAgentId: 'orchestrator',
+          providerAgentId: agent.id,
+          clientAddress: getOrchestratorAddress(),
+          providerAddress: agent.locusOwnerAddress,
+          clientApiKey: orchestratorApiKey,
+          amount: agent.pricing,
+        });
+
+        updateSubtask(task.id, subtask.id, { escrowId: escrow.id });
+
+        emitter.emit('escrow:created', {
+          taskId: task.id,
+          subtaskId: subtask.id,
+          agentId: agent.id,
+          message: `Escrow created: ${agent.pricing} USDC locked`,
+          data: { escrowId: escrow.id, amount: agent.pricing },
+        });
+      } catch (error) {
+        console.warn('Escrow creation failed (continuing without escrow):', error);
+
+        // Emit simulated escrow event for demo
+        emitter.emit('escrow:created', {
+          taskId: task.id,
+          subtaskId: subtask.id,
+          agentId: agent.id,
+          message: `Escrow created (sim): ${agent.pricing} USDC locked for ${agent.name}`,
+          data: { amount: agent.pricing, simulated: true },
+        });
+      }
     }
 
     // Step 4: Execute subtask
@@ -235,17 +289,41 @@ async function executeSubtaskFlow(
       });
 
       // Release escrow
-      if (escrow) {
+      if (onChainTxHash) {
+        try {
+          const escrowId = `${task.id}-${subtask.id}`;
+          const result = await releaseOnChainEscrow(escrowId);
+          emitter.emit('escrow:released', {
+            taskId: task.id,
+            subtaskId: subtask.id,
+            agentId: agent.id,
+            message: `On-chain escrow released: ${agent.pricing} USDC paid to ${agent.name}`,
+            data: { txHash: result.txHash, onChain: true },
+          });
+        } catch (error) {
+          console.warn('On-chain escrow release failed:', error);
+        }
+      } else if (escrow) {
         try {
           await releaseEscrow(escrow.id, orchestratorApiKey);
-          // Update agent earnings
-          store.updateAgent(agent.id, {
-            totalEarnings: agent.totalEarnings + agent.pricing,
-          });
         } catch (error) {
           console.warn('Escrow release failed:', error);
         }
       }
+
+      // Emit payment event
+      emitter.emit('escrow:released', {
+        taskId: task.id,
+        subtaskId: subtask.id,
+        agentId: agent.id,
+        message: `Payment released: ${agent.pricing} USDC to ${agent.name}`,
+        data: { amount: agent.pricing, agentName: agent.name },
+      });
+
+      // Update agent earnings
+      store.updateAgent(agent.id, {
+        totalEarnings: agent.totalEarnings + agent.pricing,
+      });
 
       return deliverable;
     } else {
@@ -262,7 +340,14 @@ async function executeSubtaskFlow(
       });
 
       // Refund escrow
-      if (escrow) {
+      if (onChainTxHash) {
+        try {
+          const escrowId = `${task.id}-${subtask.id}`;
+          await refundOnChainEscrow(escrowId);
+        } catch (error) {
+          console.warn('On-chain escrow refund failed:', error);
+        }
+      } else if (escrow) {
         try {
           await refundEscrow(escrow.id, orchestratorApiKey);
         } catch (error) {
@@ -293,6 +378,8 @@ async function compileResults(
     apiKey,
     systemPrompt: SYSTEM_PROMPTS.compiler,
     userMessage: buildCompilerPrompt(taskDescription, results),
+    simulationType: 'compile',
+    simulationContext: { taskDescription, results },
   });
 
   const parsed = parseJSON<{ finalResult: string; summary: string }>(raw);

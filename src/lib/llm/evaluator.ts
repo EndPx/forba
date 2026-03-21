@@ -14,6 +14,12 @@ export async function evaluateDeliverable(params: {
     apiKey,
     systemPrompt: SYSTEM_PROMPTS.evaluator,
     userMessage: buildEvaluationPrompt(subtaskDescription, subtaskType, deliverable),
+    simulationType: 'evaluate',
+    simulationContext: {
+      subtaskDescription,
+      subtaskType,
+      deliverable,
+    },
   });
 
   const result = parseJSON<EvaluationResult>(raw);
