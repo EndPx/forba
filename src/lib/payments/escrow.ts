@@ -41,8 +41,12 @@ export async function createEscrow(params: {
 
   // Fund the escrow (in app-level escrow, this is a hold - we verify balance)
   try {
-    if (isSimulationMode()) {
-      // Simulation: skip real balance check, auto-fund
+    // Use the real orchestrator API key for balance checks (not agent mock keys)
+    const realApiKey = process.env.LOCUS_ORCHESTRATOR_API_KEY || process.env.LOCUS_API_KEY || params.clientApiKey;
+    const isMockKey = !realApiKey || realApiKey.startsWith('mock-');
+
+    if (isMockKey || isSimulationMode()) {
+      // No real API key available — auto-fund for demo
       escrow.status = 'funded';
       escrow.fundedAt = new Date().toISOString();
       escrows.set(escrow.id, escrow);
@@ -54,7 +58,7 @@ export async function createEscrow(params: {
         data: { escrowId: escrow.id, balance: '1000.00', simulated: true },
       });
     } else {
-      const balance = await getBalance(params.clientApiKey);
+      const balance = await getBalance(realApiKey);
       if (parseFloat(balance.balance) < params.amount) {
         escrow.status = 'failed';
         escrows.set(escrow.id, escrow);
@@ -90,8 +94,11 @@ export async function releaseEscrow(
   if (escrow.status !== 'funded') throw new Error(`Cannot release escrow in status: ${escrow.status}`);
 
   try {
-    if (isSimulationMode()) {
-      // Simulation: skip real payment, mark as released
+    const realApiKey = process.env.LOCUS_ORCHESTRATOR_API_KEY || process.env.LOCUS_API_KEY || clientApiKey;
+    const isMockKey = !realApiKey || realApiKey.startsWith('mock-');
+
+    if (isMockKey || isSimulationMode()) {
+      // No real API key — simulate release
       escrow.status = 'released';
       escrow.releaseTxHash = `0xsim_${escrowId.slice(0, 16)}`;
       escrow.releasedAt = new Date().toISOString();
@@ -110,7 +117,7 @@ export async function releaseEscrow(
         },
       });
     } else {
-      const result = await sendPayment(clientApiKey, escrow.providerAddress, escrow.amount);
+      const result = await sendPayment(realApiKey, escrow.providerAddress, escrow.amount);
 
       escrow.status = 'released';
       escrow.releaseTxHash = result.transactionHash;

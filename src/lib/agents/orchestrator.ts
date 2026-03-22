@@ -13,14 +13,20 @@ import { isSimulationMode } from '../llm/simulator';
 import { createOnChainEscrow, releaseOnChainEscrow, refundOnChainEscrow } from '../contracts/forbaEscrow';
 import { attemptPostPaymentSwap } from '../payments/uniswap';
 
-// Get orchestrator's API key (first registered agent or env var)
+// Get orchestrator's API key — always prefer real env var keys
 function getOrchestratorApiKey(): string {
+  // Priority 1: Dedicated orchestrator key
   const orchestratorKey = process.env.LOCUS_ORCHESTRATOR_API_KEY;
-  if (orchestratorKey) return orchestratorKey;
+  if (orchestratorKey && !orchestratorKey.startsWith('mock-')) return orchestratorKey;
 
-  // Fallback: use the first code agent's key (for demo purposes)
+  // Priority 2: General Locus API key (same hackathon key)
+  const locusKey = process.env.LOCUS_API_KEY;
+  if (locusKey && !locusKey.startsWith('mock-')) return locusKey;
+
+  // Priority 3: First real agent key
   const agents = store.getAllAgents();
-  if (agents.length > 0) return agents[0].locusApiKey;
+  const realAgent = agents.find(a => a.locusApiKey && !a.locusApiKey.startsWith('mock-'));
+  if (realAgent) return realAgent.locusApiKey;
 
   return 'mock-orchestrator-key';
 }
