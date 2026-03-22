@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 
 const NAV_ITEMS = [
   { href: '/',          label: 'Home' },
@@ -11,6 +13,83 @@ const NAV_ITEMS = [
   { href: '/agents',    label: 'Agents' },
   { href: '/payments',  label: 'Payments' },
 ];
+
+function truncate(address: string) {
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+function WalletStatus() {
+  const { address, isConnected } = useAccount();
+
+  return (
+    <ConnectButton.Custom>
+      {({ openConnectModal, openAccountModal, chain, mounted }) => {
+        if (!mounted) return null;
+
+        if (!isConnected || !address) {
+          return (
+            <button
+              onClick={openConnectModal}
+              className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors font-medium"
+            >
+              Connect Wallet
+            </button>
+          );
+        }
+
+        return (
+          <button
+            onClick={openAccountModal}
+            className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block shrink-0" />
+            <span>{chain?.name ?? 'Base Sepolia'}</span>
+            <span className="text-zinc-300">|</span>
+            <span className="font-mono text-zinc-400">{truncate(address)}</span>
+          </button>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
+}
+
+function MobileWalletStatus() {
+  const { address, isConnected } = useAccount();
+
+  return (
+    <ConnectButton.Custom>
+      {({ openConnectModal, openAccountModal, chain, mounted }) => {
+        if (!mounted) return null;
+
+        if (!isConnected || !address) {
+          return (
+            <div className="pt-2 pb-1 border-t border-zinc-100 mt-1 px-3 py-2">
+              <button
+                onClick={openConnectModal}
+                className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors font-medium"
+              >
+                Connect Wallet
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <div className="pt-2 pb-1 border-t border-zinc-100 mt-1">
+            <button
+              onClick={openAccountModal}
+              className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-400 hover:text-zinc-700 transition-colors w-full"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block shrink-0" />
+              {chain?.name ?? 'Base Sepolia'} ·{' '}
+              <span className="font-mono">{truncate(address)}</span>
+            </button>
+          </div>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -48,15 +127,9 @@ export function Header() {
           })}
         </nav>
 
-        {/* Right: network info */}
+        {/* Right: wallet status */}
         <div className="ml-auto flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-500">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
-            Base Sepolia
-          </div>
-          <div className="hidden sm:block text-xs font-mono text-zinc-400">
-            0x701B…4eB4
-          </div>
+          <WalletStatus />
 
           {/* Mobile toggle */}
           <button
@@ -94,12 +167,7 @@ export function Header() {
                 </Link>
               );
             })}
-            <div className="pt-2 pb-1 border-t border-zinc-100 mt-1">
-              <div className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
-                Base Sepolia · <span className="font-mono">0x701B…4eB4</span>
-              </div>
-            </div>
+            <MobileWalletStatus />
           </nav>
         </div>
       )}
