@@ -1,11 +1,11 @@
 {
   "contract": "ForbaEscrow",
-  "address": "0x7bB06531A268426040E2481a27d8CD0F81a5394B",
+  "address": "0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9",
   "network": "base-sepolia",
   "chainId": 84532,
   "usdc": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
   "owner": "0x701B49eFC3E9118e792A7B988AFdE14651244eB4",
   "deployer": "0x701B49eFC3E9118e792A7B988AFdE14651244eB4",
-  "deployedAt": "2026-03-21T22:30:12.506Z",
-  "txHash": "0xb16b32933892d5153221574d602da9a1539c7f82e072de887ed234426c554a37"
+  "deployedAt": "2026-03-22T02:07:11.684Z",
+  "txHash": "0xe0ced5b79ed4e8a1f4b93b56a6c7cd7faffb5f931389c86d1ab150967c608f84"
 }
