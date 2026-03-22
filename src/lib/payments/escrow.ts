@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Escrow } from '../types';
 import { sendPayment, getBalance } from './locus';
 import { emitter } from '../events/emitter';
+import { isSimulationMode } from '../llm/simulator';
 
 // In-memory escrow store
 const escrows = new Map<string, Escrow>();
@@ -40,23 +41,37 @@ export async function createEscrow(params: {
 
   // Fund the escrow (in app-level escrow, this is a hold - we verify balance)
   try {
-    const balance = await getBalance(params.clientApiKey);
-    if (parseFloat(balance.balance) < params.amount) {
-      escrow.status = 'failed';
+    if (isSimulationMode()) {
+      // Simulation: skip real balance check, auto-fund
+      escrow.status = 'funded';
+      escrow.fundedAt = new Date().toISOString();
       escrows.set(escrow.id, escrow);
-      throw new Error(`Insufficient balance: ${balance.balance} USDC, need ${params.amount}`);
+
+      emitter.emit('escrow:funded', {
+        taskId: params.taskId,
+        subtaskId: params.subtaskId,
+        message: `Escrow funded (sim): ${params.amount} USDC locked`,
+        data: { escrowId: escrow.id, balance: '1000.00', simulated: true },
+      });
+    } else {
+      const balance = await getBalance(params.clientApiKey);
+      if (parseFloat(balance.balance) < params.amount) {
+        escrow.status = 'failed';
+        escrows.set(escrow.id, escrow);
+        throw new Error(`Insufficient balance: ${balance.balance} USDC, need ${params.amount}`);
+      }
+
+      escrow.status = 'funded';
+      escrow.fundedAt = new Date().toISOString();
+      escrows.set(escrow.id, escrow);
+
+      emitter.emit('escrow:funded', {
+        taskId: params.taskId,
+        subtaskId: params.subtaskId,
+        message: `Escrow funded: ${params.amount} USDC verified`,
+        data: { escrowId: escrow.id, balance: balance.balance },
+      });
     }
-
-    escrow.status = 'funded';
-    escrow.fundedAt = new Date().toISOString();
-    escrows.set(escrow.id, escrow);
-
-    emitter.emit('escrow:funded', {
-      taskId: params.taskId,
-      subtaskId: params.subtaskId,
-      message: `Escrow funded: ${params.amount} USDC verified`,
-      data: { escrowId: escrow.id, balance: balance.balance },
-    });
   } catch (error) {
     escrow.status = 'failed';
     escrows.set(escrow.id, escrow);
@@ -75,24 +90,45 @@ export async function releaseEscrow(
   if (escrow.status !== 'funded') throw new Error(`Cannot release escrow in status: ${escrow.status}`);
 
   try {
-    const result = await sendPayment(clientApiKey, escrow.providerAddress, escrow.amount);
+    if (isSimulationMode()) {
+      // Simulation: skip real payment, mark as released
+      escrow.status = 'released';
+      escrow.releaseTxHash = `0xsim_${escrowId.slice(0, 16)}`;
+      escrow.releasedAt = new Date().toISOString();
+      escrows.set(escrowId, escrow);
 
-    escrow.status = 'released';
-    escrow.releaseTxHash = result.transactionHash;
-    escrow.releasedAt = new Date().toISOString();
-    escrows.set(escrowId, escrow);
+      emitter.emit('escrow:released', {
+        taskId: escrow.taskId,
+        subtaskId: escrow.subtaskId,
+        message: `Payment released (sim): ${escrow.amount} USDC sent`,
+        data: {
+          escrowId: escrow.id,
+          amount: escrow.amount,
+          txHash: escrow.releaseTxHash,
+          to: escrow.providerAddress,
+          simulated: true,
+        },
+      });
+    } else {
+      const result = await sendPayment(clientApiKey, escrow.providerAddress, escrow.amount);
 
-    emitter.emit('escrow:released', {
-      taskId: escrow.taskId,
-      subtaskId: escrow.subtaskId,
-      message: `Payment released: ${escrow.amount} USDC sent`,
-      data: {
-        escrowId: escrow.id,
-        amount: escrow.amount,
-        txHash: result.transactionHash,
-        to: escrow.providerAddress,
-      },
-    });
+      escrow.status = 'released';
+      escrow.releaseTxHash = result.transactionHash;
+      escrow.releasedAt = new Date().toISOString();
+      escrows.set(escrowId, escrow);
+
+      emitter.emit('escrow:released', {
+        taskId: escrow.taskId,
+        subtaskId: escrow.subtaskId,
+        message: `Payment released: ${escrow.amount} USDC sent`,
+        data: {
+          escrowId: escrow.id,
+          amount: escrow.amount,
+          txHash: result.transactionHash,
+          to: escrow.providerAddress,
+        },
+      });
+    }
 
     return escrow;
   } catch (error) {
