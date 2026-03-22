@@ -524,15 +524,18 @@ export default function HomePage() {
               <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse-dot" />
               <div>
                 <div className="text-xs text-white/50 mb-0.5">ForbaEscrow · Base Sepolia</div>
-                <div
-                  className="text-xs font-mono text-violet-300/80 tracking-tight truncate max-w-[280px]"
+                <a
+                  href="https://sepolia.basescan.org/address/0x7bB06531A268426040E2481a27d8CD0F81a5394B"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-mono text-violet-300/80 tracking-tight truncate max-w-[280px] hover:text-violet-300 transition-colors"
                 >
-                  0x…deployed · Verified on BaseScan
-                </div>
+                  0x7bB06531A268426040E2481a27d8CD0F81a5394B · Verified on BaseScan
+                </a>
               </div>
             </div>
             <a
-              href="https://sepolia.basescan.org"
+              href="https://sepolia.basescan.org/address/0x7bB06531A268426040E2481a27d8CD0F81a5394B"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-[11px] text-white/30 hover:text-violet-400 transition-colors"

@@ -36,6 +36,17 @@ export default function DashboardPage() {
     }
   };
 
+  const [agentCount, setAgentCount] = useState<number | string>('—');
+
+  useEffect(() => {
+    fetch('/api/agents')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setAgentCount(data.length);
+      })
+      .catch(() => {/* leave as — */});
+  }, []);
+
   // Derived stats
   const completedTasks = tasks.filter((t) => t.status === 'completed' || t.status === 'approved').length;
   const activeTasks = tasks.filter((t) => !['completed', 'approved', 'failed'].includes(t.status ?? '')).length;
@@ -66,7 +77,7 @@ export default function DashboardPage() {
     },
     {
       label: 'Total Agents',
-      value: '—',
+      value: agentCount,
       icon: Users,
       gradient: 'from-blue-500 to-cyan-400',
       bg: 'bg-blue-50',

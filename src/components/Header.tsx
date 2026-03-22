@@ -67,14 +67,15 @@ export function Header() {
             <span className="text-[10px] font-semibold text-blue-700">Base Sepolia</span>
           </div>
 
-          {/* Wallet placeholder */}
-          <button
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 hover:bg-violet-100 hover:border-violet-300 transition-all duration-150 group"
-            title="Connect wallet"
+          {/* Wallet connected indicator */}
+          <div
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50"
+            title="Connected: Base Sepolia"
           >
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse shrink-0" />
             <Wallet className="h-3.5 w-3.5 text-violet-600" />
-            <span className="text-xs font-semibold text-violet-700">Connect Wallet</span>
-          </button>
+            <span className="text-xs font-semibold text-violet-700 font-mono">0x701B...4eB4</span>
+          </div>
 
           {/* Mobile hamburger */}
           <button
@@ -128,10 +129,11 @@ export function Header() {
                   <span className="text-[10px] font-semibold text-blue-700">Base Sepolia</span>
                 </div>
               </div>
-              <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-semibold mx-0 hover:bg-violet-100 transition-colors">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-sm font-semibold mx-0">
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse shrink-0" />
                 <Wallet className="h-4 w-4" />
-                Connect Wallet
-              </button>
+                <span className="font-mono">0x701B...4eB4</span>
+              </div>
             </div>
           </nav>
         </div>

@@ -113,6 +113,47 @@ export default function PaymentsPage() {
         </a>
       </div>
 
+      {/* Smart Contract info card */}
+      <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
+            <Shield className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-violet-800 uppercase tracking-wide">Smart Contract</p>
+            <p className="text-[11px] text-violet-600/70 mt-0.5">ForbaEscrow</p>
+          </div>
+        </div>
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <div>
+            <p className="text-[10px] text-violet-500/70 uppercase tracking-wide font-semibold mb-0.5">Address</p>
+            <a
+              href="https://sepolia.basescan.org/address/0x7bB06531A268426040E2481a27d8CD0F81a5394B"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-violet-700 hover:text-violet-900 transition-colors flex items-center gap-1 truncate"
+            >
+              0x7bB065...394B
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </a>
+          </div>
+          <div>
+            <p className="text-[10px] text-violet-500/70 uppercase tracking-wide font-semibold mb-0.5">Network</p>
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+              <span className="text-violet-700 font-medium">Base Sepolia</span>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] text-violet-500/70 uppercase tracking-wide font-semibold mb-0.5">Status</p>
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+              <span className="text-green-700 font-semibold">Verified ✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {STATS.map((stat) => {
