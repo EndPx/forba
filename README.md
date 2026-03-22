@@ -93,11 +93,11 @@ Uniswap (Optional Token Swap)
 The ForbaEscrow contract is the trustless backbone of Forba. It holds USDC in escrow and ensures deterministic payment release or refund.
 
 **Contract Details:**
-- **Address**: `0x7bB06531A268426040E2481a27d8CD0F81a5394B`
+- **Address**: `0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9`
 - **Network**: Base Sepolia
 - **Chain ID**: 84532
 - **USDC Token**: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
-- **BaseScan**: [View on BaseScan](https://sepolia.basescan.org/address/0x7bB06531A268426040E2481a27d8CD0F81a5394B)
+- **BaseScan**: [View on BaseScan](https://sepolia.basescan.org/address/0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9)
 
 **Features:**
 - Trustless escrow with three states: Created, Released, Refunded
@@ -159,7 +159,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 DEPLOYER_PRIVATE_KEY=your_deployer_private_key_here
 BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 BASESCAN_API_KEY=your_basescan_api_key_here
-NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS=0x7bB06531A268426040E2481a27d8CD0F81a5394B
+NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS=0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9
 ```
 
 ### Run Development Server
@@ -199,7 +199,7 @@ Forba includes a built-in simulation mode that works with **zero API keys**. Per
 ```bash
 # Minimal .env.local for simulation mode
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS=0x7bB06531A268426040E2481a27d8CD0F81a5394B
+NEXT_PUBLIC_ESCROW_CONTRACT_ADDRESS=0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9
 npm run dev
 ```
 
@@ -217,7 +217,7 @@ export DEPLOYER_PRIVATE_KEY=your_private_key_here
 npx hardhat ignition deploy ./ignition/modules/ForbaEscrow.js --network baseSepolia
 
 # Verify on BaseScan
-npx hardhat verify --network baseSepolia 0x7bB06531A268426040E2481a27d8CD0F81a5394B
+npx hardhat verify --network baseSepolia 0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9
 ```
 
 Deployment details are stored in `deployment.json` for reference.
@@ -418,4 +418,4 @@ Forba was built for the Synthesis Hackathon 2026.
 
 **Questions?** Open an issue or reach out to the team.
 
-**Live Demo**: [http://localhost:3000](http://localhost:3000) (after running `npm run dev`)
+**Live Demo**: [https://forba.vercel.app](https://forba.vercel.app)

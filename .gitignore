@@ -42,3 +42,5 @@ hackathon/registration.md
 artifacts/
 cache/
 typechain-types/
+
+.vercel

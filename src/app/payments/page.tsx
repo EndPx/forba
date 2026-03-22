@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { PaymentLog } from '@/components/PaymentLog';
-import { CreditCard, TrendingUp, Clock, RotateCcw, Shield, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 interface EscrowData {
   id: string;
@@ -42,156 +42,77 @@ export default function PaymentsPage() {
   const totalRefunded = escrows.filter((e) => e.status === 'refunded').reduce((s, e) => s + e.amount, 0);
   const totalVolume   = escrows.reduce((s, e) => s + e.amount, 0);
 
-  const STATS = [
-    {
-      label: 'Total Released',
-      value: `$${totalReleased.toFixed(2)}`,
-      sub: `${escrows.filter((e) => e.status === 'released').length} payments`,
-      icon: TrendingUp,
-      gradient: 'from-green-500 to-emerald-400',
-      bg: 'bg-green-50',
-      text: 'text-green-700',
-      border: 'border-green-100',
-    },
-    {
-      label: 'Pending Escrow',
-      value: `$${totalPending.toFixed(2)}`,
-      sub: `${escrows.filter((e) => e.status === 'funded').length} active`,
-      icon: Clock,
-      gradient: 'from-amber-500 to-orange-400',
-      bg: 'bg-amber-50',
-      text: 'text-amber-700',
-      border: 'border-amber-100',
-    },
-    {
-      label: 'Refunded',
-      value: `$${totalRefunded.toFixed(2)}`,
-      sub: `${escrows.filter((e) => e.status === 'refunded').length} refunds`,
-      icon: RotateCcw,
-      gradient: 'from-red-400 to-rose-400',
-      bg: 'bg-red-50',
-      text: 'text-red-600',
-      border: 'border-red-100',
-    },
-    {
-      label: 'Total Volume',
-      value: `$${totalVolume.toFixed(2)}`,
-      sub: `${escrows.length} escrows`,
-      icon: Shield,
-      gradient: 'from-violet-500 to-orange-400',
-      bg: 'bg-violet-50',
-      text: 'text-violet-700',
-      border: 'border-violet-100',
-    },
-  ];
-
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="container mx-auto px-4 py-8 space-y-6 max-w-5xl">
 
       {/* Page header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-orange-500 flex items-center justify-center shadow-sm">
-            <CreditCard className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">Payment Audit Trail</h1>
-            <p className="text-xs text-muted-foreground">On-chain escrow activity via ForbaEscrow on Base Sepolia</p>
-          </div>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-lg font-semibold text-zinc-900">Payments</h1>
+          <p className="text-sm text-zinc-400 mt-0.5">On-chain escrow activity via ForbaEscrow on Base Sepolia</p>
         </div>
-
-        {/* Contract link */}
         <a
-          href="https://sepolia.basescan.org"
+          href="https://sepolia.basescan.org/address/0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 bg-violet-50 border border-violet-200 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-100"
+          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 transition-colors"
         >
-          <Shield className="h-3 w-3" />
-          ForbaEscrow
+          <span className="font-mono">0x2b1Ba5…0dE9</span>
           <ExternalLink className="h-3 w-3" />
         </a>
       </div>
 
-      {/* Smart Contract info card */}
-      <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
-            <Shield className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-violet-800 uppercase tracking-wide">Smart Contract</p>
-            <p className="text-[11px] text-violet-600/70 mt-0.5">ForbaEscrow</p>
-          </div>
-        </div>
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-          <div>
-            <p className="text-[10px] text-violet-500/70 uppercase tracking-wide font-semibold mb-0.5">Address</p>
-            <a
-              href="https://sepolia.basescan.org/address/0x7bB06531A268426040E2481a27d8CD0F81a5394B"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-violet-700 hover:text-violet-900 transition-colors flex items-center gap-1 truncate"
-            >
-              0x7bB065...394B
-              <ExternalLink className="h-3 w-3 shrink-0" />
-            </a>
-          </div>
-          <div>
-            <p className="text-[10px] text-violet-500/70 uppercase tracking-wide font-semibold mb-0.5">Network</p>
-            <div className="flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-              <span className="text-violet-700 font-medium">Base Sepolia</span>
-            </div>
-          </div>
-          <div>
-            <p className="text-[10px] text-violet-500/70 uppercase tracking-wide font-semibold mb-0.5">Status</p>
-            <div className="flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
-              <span className="text-green-700 font-semibold">Verified ✓</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {STATS.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className={`rounded-2xl border ${stat.border} ${stat.bg} p-4 flex items-center gap-3`}
-            >
-              <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-sm shrink-0`}>
-                <Icon className="h-4 w-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className={`text-xl font-bold font-mono tabular-nums ${stat.text}`}>{stat.value}</p>
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide leading-none mt-0.5">{stat.label}</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">{stat.sub}</p>
+        {[
+          { label: 'Released',     value: `$${totalReleased.toFixed(2)}`,  sub: `${escrows.filter((e) => e.status === 'released').length} payments` },
+          { label: 'In Escrow',    value: `$${totalPending.toFixed(2)}`,   sub: `${escrows.filter((e) => e.status === 'funded').length} active` },
+          { label: 'Refunded',     value: `$${totalRefunded.toFixed(2)}`,  sub: `${escrows.filter((e) => e.status === 'refunded').length} refunds` },
+          { label: 'Total Volume', value: `$${totalVolume.toFixed(2)}`,    sub: `${escrows.length} escrows` },
+        ].map((stat) => (
+          <div key={stat.label} className="border border-zinc-200 rounded-lg bg-white p-4">
+            <p className="text-xl font-semibold text-zinc-900 tabular-nums font-mono">{stat.value}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">{stat.label}</p>
+            <p className="text-xs text-zinc-300 mt-0.5">{stat.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Contract info */}
+      <div className="border border-zinc-200 rounded-lg bg-white p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <p className="text-zinc-400 mb-1">Contract</p>
+              <a
+                href="https://sepolia.basescan.org/address/0x2b1Ba5E95830AbafBc828B9d2581cB17C10f0dE9"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-zinc-700 hover:text-zinc-900 flex items-center gap-1 transition-colors"
+              >
+                0x2b1Ba5…0dE9
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            <div>
+              <p className="text-zinc-400 mb-1">Network</p>
+              <div className="flex items-center gap-1.5 text-zinc-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 inline-block" />
+                Base Sepolia
               </div>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Contract info banner */}
-      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-blue-100 bg-blue-50/60">
-        <Shield className="h-4 w-4 text-blue-500 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-blue-700">Trustless Escrow on Base Sepolia</p>
-          <p className="text-[11px] text-blue-600/70 mt-0.5">
-            Every payment flows through a verified smart contract. Agents are paid only after work is evaluated and approved.
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-          <span className="text-[10px] font-semibold text-blue-600">Base Sepolia</span>
+            <div>
+              <p className="text-zinc-400 mb-1">Status</p>
+              <div className="flex items-center gap-1.5 text-green-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
+                Verified
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Payment log table */}
+      {/* Payment log */}
       <PaymentLog />
     </div>
   );

@@ -2,10 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Activity, Zap, Users, DollarSign, CheckCircle, XCircle,
-  AlertCircle, ArrowRightLeft, Radio, WifiOff
-} from 'lucide-react';
 
 interface AgentEvent {
   id: string;
@@ -18,48 +14,23 @@ interface AgentEvent {
   timestamp: string;
 }
 
-const EVENT_CONFIG: Record<string, {
-  icon: typeof Activity;
-  bg: string;
-  text: string;
-  border: string;
-  dot: string;
-  category: 'success' | 'error' | 'info' | 'warning' | 'money';
-}> = {
-  'task:created':       { icon: Zap,            bg: 'bg-blue-50',    text: 'text-blue-600',    border: 'border-blue-100',   dot: 'bg-blue-400',    category: 'info' },
-  'task:decomposed':    { icon: Zap,            bg: 'bg-blue-50',    text: 'text-blue-600',    border: 'border-blue-100',   dot: 'bg-blue-400',    category: 'info' },
-  'task:completed':     { icon: CheckCircle,    bg: 'bg-green-50',   text: 'text-green-600',   border: 'border-green-100',  dot: 'bg-green-400',   category: 'success' },
-  'task:failed':        { icon: XCircle,        bg: 'bg-red-50',     text: 'text-red-600',     border: 'border-red-100',    dot: 'bg-red-400',     category: 'error' },
-  'agent:hired':        { icon: Users,          bg: 'bg-violet-50',  text: 'text-violet-600',  border: 'border-violet-100', dot: 'bg-violet-400',  category: 'info' },
-  'agent:working':      { icon: Activity,       bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',  dot: 'bg-amber-400',   category: 'warning' },
-  'agent:delivered':    { icon: CheckCircle,    bg: 'bg-purple-50',  text: 'text-purple-600',  border: 'border-purple-100', dot: 'bg-purple-400',  category: 'success' },
-  'escrow:created':     { icon: DollarSign,     bg: 'bg-slate-50',   text: 'text-slate-600',   border: 'border-slate-100',  dot: 'bg-slate-400',   category: 'money' },
-  'escrow:funded':      { icon: DollarSign,     bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',  dot: 'bg-amber-400',   category: 'money' },
-  'escrow:released':    { icon: DollarSign,     bg: 'bg-green-50',   text: 'text-green-600',   border: 'border-green-100',  dot: 'bg-green-400',   category: 'success' },
-  'escrow:refunded':    { icon: DollarSign,     bg: 'bg-red-50',     text: 'text-red-600',     border: 'border-red-100',    dot: 'bg-red-400',     category: 'error' },
-  'evaluation:started': { icon: Activity,       bg: 'bg-blue-50',    text: 'text-blue-600',    border: 'border-blue-100',   dot: 'bg-blue-400',    category: 'info' },
-  'evaluation:passed':  { icon: CheckCircle,    bg: 'bg-green-50',   text: 'text-green-600',   border: 'border-green-100',  dot: 'bg-green-400',   category: 'success' },
-  'evaluation:failed':  { icon: XCircle,        bg: 'bg-red-50',     text: 'text-red-600',     border: 'border-red-100',    dot: 'bg-red-400',     category: 'error' },
-  'swap:initiated':     { icon: ArrowRightLeft, bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100',  dot: 'bg-amber-400',   category: 'warning' },
-  'swap:completed':     { icon: ArrowRightLeft, bg: 'bg-green-50',   text: 'text-green-600',   border: 'border-green-100',  dot: 'bg-green-400',   category: 'success' },
-  'system:error':       { icon: AlertCircle,    bg: 'bg-red-50',     text: 'text-red-600',     border: 'border-red-100',    dot: 'bg-red-400',     category: 'error' },
+const EVENT_DOT: Record<string, string> = {
+  'task:completed':    'bg-green-500',
+  'evaluation:passed': 'bg-green-500',
+  'escrow:released':   'bg-green-500',
+  'swap:completed':    'bg-green-500',
+  'agent:delivered':   'bg-green-500',
+  'task:failed':       'bg-red-400',
+  'evaluation:failed': 'bg-red-400',
+  'escrow:refunded':   'bg-red-400',
+  'system:error':      'bg-red-400',
+  'agent:working':     'bg-amber-400',
+  'escrow:funded':     'bg-amber-400',
+  'swap:initiated':    'bg-amber-400',
 };
 
-const FALLBACK_CONFIG = {
-  icon: Activity,
-  bg: 'bg-slate-50',
-  text: 'text-slate-500',
-  border: 'border-slate-100',
-  dot: 'bg-slate-300',
-  category: 'info' as const,
-};
-
-function relativeTime(timestamp: string): string {
-  const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
-  if (diff < 5)  return 'just now';
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  return `${Math.floor(diff / 3600)}h ago`;
+function getDot(type: string): string {
+  return EVENT_DOT[type] || 'bg-zinc-300';
 }
 
 export function LiveFeed({ events, connected }: { events: AgentEvent[]; connected: boolean }) {
@@ -67,102 +38,47 @@ export function LiveFeed({ events, connected }: { events: AgentEvent[]; connecte
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [events]);
 
   return (
-    <Card className="h-full border-violet-100 overflow-hidden flex flex-col">
-      <CardHeader className="pb-3 bg-gradient-to-r from-violet-50/60 to-transparent shrink-0">
+    <Card className="h-full border-zinc-200 flex flex-col overflow-hidden">
+      <CardHeader className="pb-3 shrink-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-violet-500 to-orange-500 flex items-center justify-center shadow-sm">
-              <Radio className="h-3.5 w-3.5 text-white" />
-            </div>
-            Live Feed
-          </CardTitle>
-
-          {/* Connection status */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-all duration-300 ${
-            connected
-              ? 'bg-green-50 border-green-200 text-green-700'
-              : 'bg-red-50 border-red-200 text-red-600'
-          }`}>
-            {connected ? (
-              <>
-                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                Connected
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-3 w-3" />
-                Disconnected
-              </>
-            )}
-          </div>
+          <CardTitle className="text-sm font-semibold text-zinc-900">Event Log</CardTitle>
+          <span className={`inline-flex items-center gap-1.5 text-xs ${connected ? 'text-green-600' : 'text-zinc-400'}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-green-500' : 'bg-zinc-300'}`} />
+            {connected ? 'Connected' : 'Disconnected'}
+          </span>
         </div>
       </CardHeader>
 
       <CardContent className="flex-1 overflow-hidden p-0 px-4 pb-4">
         <div
           ref={scrollRef}
-          className="h-[420px] overflow-y-auto space-y-1 pr-1 scrollbar-thin"
-          style={{ scrollbarWidth: 'thin', scrollbarColor: '#ddd6fe transparent' }}
+          className="h-[420px] overflow-y-auto space-y-0 custom-scrollbar"
         >
-          {events.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center gap-3 py-8">
-              <div className="relative">
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-100 to-orange-50 flex items-center justify-center">
-                  <Radio className="h-7 w-7 text-violet-300" />
+          {events.length === 0 ? (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-xs text-zinc-400">Waiting for events…</p>
+            </div>
+          ) : (
+            <div className="font-mono text-xs">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-start gap-2.5 py-1.5 border-b border-zinc-50 last:border-0"
+                >
+                  <span className="text-zinc-300 tabular-nums shrink-0 mt-0.5">
+                    {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1.5 ${getDot(event.type)}`} />
+                  <span className="text-zinc-600 leading-relaxed break-all">{event.message}</span>
                 </div>
-                {connected && (
-                  <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-green-400 border-2 border-white animate-pulse" />
-                )}
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-muted-foreground">Listening for events</p>
-                <p className="text-xs text-muted-foreground/60 mt-0.5">Dispatch a task to see the agent network in action</p>
-              </div>
+              ))}
             </div>
           )}
-
-          {events.map((event, idx) => {
-            const conf = EVENT_CONFIG[event.type] || FALLBACK_CONFIG;
-            const Icon = conf.icon;
-            const isNew = idx === events.length - 1;
-
-            return (
-              <div
-                key={event.id}
-                className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all duration-300 ${conf.bg} ${conf.border} ${
-                  isNew ? 'animate-in slide-in-from-bottom-2 fade-in duration-300' : ''
-                }`}
-              >
-                {/* Icon */}
-                <div className={`h-6 w-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${conf.bg} border ${conf.border}`}>
-                  <Icon className={`h-3.5 w-3.5 ${conf.text}`} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground leading-snug">{event.message}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full border ${conf.bg} ${conf.text} ${conf.border}`}>
-                      {event.type}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/60 tabular-nums">
-                      {relativeTime(event.timestamp)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Color dot */}
-                <div className={`h-1.5 w-1.5 rounded-full shrink-0 mt-1.5 ${conf.dot}`} />
-              </div>
-            );
-          })}
         </div>
       </CardContent>
     </Card>
