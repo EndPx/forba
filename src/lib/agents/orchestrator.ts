@@ -11,6 +11,7 @@ import { createEscrow, releaseEscrow, refundEscrow } from '../payments/escrow';
 import { config } from '../config';
 import { isSimulationMode } from '../llm/simulator';
 import { createOnChainEscrow, releaseOnChainEscrow, refundOnChainEscrow } from '../contracts/forbaEscrow';
+import { attemptPostPaymentSwap } from '../payments/uniswap';
 
 // Get orchestrator's API key (first registered agent or env var)
 function getOrchestratorApiKey(): string {
@@ -309,16 +310,40 @@ async function executeSubtaskFlow(
         } catch (error) {
           console.warn('Escrow release failed:', error);
         }
+        // Emit payment event only for Locus path (on-chain already emitted above)
+        emitter.emit('escrow:released', {
+          taskId: task.id,
+          subtaskId: subtask.id,
+          agentId: agent.id,
+          message: `Payment released: ${agent.pricing} USDC to ${agent.name}`,
+          data: { amount: agent.pricing, agentName: agent.name },
+        });
+      } else {
+        // Simulated path — no real escrow, emit for demo
+        emitter.emit('escrow:released', {
+          taskId: task.id,
+          subtaskId: subtask.id,
+          agentId: agent.id,
+          message: `Payment released: ${agent.pricing} USDC to ${agent.name}`,
+          data: { amount: agent.pricing, agentName: agent.name },
+        });
       }
 
-      // Emit payment event
-      emitter.emit('escrow:released', {
-        taskId: task.id,
-        subtaskId: subtask.id,
-        agentId: agent.id,
-        message: `Payment released: ${agent.pricing} USDC to ${agent.name}`,
-        data: { amount: agent.pricing, agentName: agent.name },
-      });
+      // Attempt post-payment token swap if agent prefers non-USDC
+      if (agent.preferredToken && agent.preferredToken !== 'USDC') {
+        try {
+          await attemptPostPaymentSwap({
+            escrowId: subtask.escrowId || '',
+            taskId: task.id,
+            subtaskId: subtask.id,
+            agentAddress: agent.locusOwnerAddress,
+            usdcAmount: agent.pricing,
+            preferredToken: agent.preferredToken,
+          });
+        } catch (swapError) {
+          console.error('[Orchestrator] Swap failed (non-critical):', swapError);
+        }
+      }
 
       // Update agent earnings
       store.updateAgent(agent.id, {
