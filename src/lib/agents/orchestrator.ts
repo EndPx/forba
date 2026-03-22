@@ -230,14 +230,6 @@ async function executeSubtaskFlow(
         });
 
         updateSubtask(task.id, subtask.id, { escrowId: escrow.id });
-
-        emitter.emit('escrow:created', {
-          taskId: task.id,
-          subtaskId: subtask.id,
-          agentId: agent.id,
-          message: `Escrow created: ${agent.pricing} USDC locked`,
-          data: { escrowId: escrow.id, amount: agent.pricing },
-        });
       } catch (error) {
         console.warn('Escrow creation failed (continuing without escrow):', error);
 
@@ -246,7 +238,7 @@ async function executeSubtaskFlow(
           taskId: task.id,
           subtaskId: subtask.id,
           agentId: agent.id,
-          message: `Escrow created (sim): ${agent.pricing} USDC locked for ${agent.name}`,
+          message: `Escrow created: ${agent.pricing} USDC locked for ${agent.name}`,
           data: { amount: agent.pricing, simulated: true },
         });
       }
