@@ -71,7 +71,7 @@ export async function createEscrow(params: {
             taskId: params.taskId,
             subtaskId: params.subtaskId,
             message: `Escrow funded: ${params.amount} USDC verified`,
-            data: { escrowId: escrow.id, balance: balance.balance || balance.usdc_balance },
+            data: { escrowId: escrow.id, balance: balance.balance },
           });
         }
       } catch (balanceError) {
