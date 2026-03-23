@@ -14,32 +14,42 @@ export interface LLMCallOptions {
   simulationContext?: Record<string, unknown>;
 }
 
+async function runSimulation(
+  simulationType: string,
+  simulationContext: Record<string, unknown>,
+  userMessage: string
+): Promise<string> {
+  const sim = await import('./simulator');
+  switch (simulationType) {
+    case 'decompose':
+      return sim.simulateDecomposition(simulationContext?.taskDescription as string || userMessage);
+    case 'specialist':
+      return sim.simulateSpecialist(
+        simulationContext?.subtaskType as 'code' | 'research' | 'copy',
+        simulationContext?.subtaskDescription as string || userMessage,
+        simulationContext?.taskContext as string || ''
+      );
+    case 'evaluate':
+      return sim.simulateEvaluation(
+        simulationContext?.subtaskDescription as string || '',
+        simulationContext?.deliverable as string || ''
+      );
+    case 'compile':
+      return sim.simulateCompilation(
+        simulationContext?.taskDescription as string || '',
+        simulationContext?.results as Array<{ type: string; description: string; deliverable: string }> || []
+      );
+    default:
+      return sim.simulateDecomposition(userMessage);
+  }
+}
+
 export async function llmCall(options: LLMCallOptions): Promise<string> {
   const { apiKey, systemPrompt, userMessage, model, jsonMode = true, simulationType, simulationContext } = options;
 
-  // If no API keys available, use simulation mode
+  // If no API keys available, use simulation mode directly
   if (isSimulationMode() && simulationType) {
-    const sim = await import('./simulator');
-    switch (simulationType) {
-      case 'decompose':
-        return sim.simulateDecomposition(simulationContext?.taskDescription as string || userMessage);
-      case 'specialist':
-        return sim.simulateSpecialist(
-          simulationContext?.subtaskType as 'code' | 'research' | 'copy',
-          simulationContext?.subtaskDescription as string || userMessage,
-          simulationContext?.taskContext as string || ''
-        );
-      case 'evaluate':
-        return sim.simulateEvaluation(
-          simulationContext?.subtaskDescription as string || '',
-          simulationContext?.deliverable as string || ''
-        );
-      case 'compile':
-        return sim.simulateCompilation(
-          simulationContext?.taskDescription as string || '',
-          simulationContext?.results as Array<{ type: string; description: string; deliverable: string }> || []
-        );
-    }
+    return runSimulation(simulationType, simulationContext || {}, userMessage);
   }
 
   const messages: LLMMessage[] = [
@@ -47,19 +57,39 @@ export async function llmCall(options: LLMCallOptions): Promise<string> {
     { role: 'user', content: userMessage },
   ];
 
+  // Try Locus wrapped API with 8s timeout
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     const result = await wrappedOpenAICall(
       apiKey,
       messages,
       model || config.llmModel,
       jsonMode
     );
+
+    clearTimeout(timeout);
     return result;
   } catch (error) {
-    // Fallback: try direct OpenAI if Locus wrapped API fails
-    console.error('Locus wrapped API failed, trying direct OpenAI:', error);
-    return directOpenAICall(messages, model || config.llmModel, jsonMode);
+    console.warn('Locus wrapped API failed:', error instanceof Error ? error.message : error);
   }
+
+  // Fallback: try direct OpenAI
+  try {
+    const result = await directOpenAICall(messages, model || config.llmModel, jsonMode);
+    return result;
+  } catch (error) {
+    console.warn('Direct OpenAI failed:', error instanceof Error ? error.message : error);
+  }
+
+  // Final fallback: simulation with real context (not "general task")
+  if (simulationType) {
+    console.warn('All LLM providers failed — using simulation with real context');
+    return runSimulation(simulationType, simulationContext || {}, userMessage);
+  }
+
+  throw new Error('All LLM providers failed and no simulation type specified');
 }
 
 async function directOpenAICall(
@@ -69,10 +99,7 @@ async function directOpenAICall(
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    // Final fallback: simulation mode even without explicit simulationType
-    console.warn('No OpenAI API key — falling back to simulation mode');
-    const sim = await import('./simulator');
-    return sim.simulateDecomposition('general task');
+    throw new Error('No OpenAI API key');
   }
 
   const body: Record<string, unknown> = { model, messages };

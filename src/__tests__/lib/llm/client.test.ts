@@ -102,20 +102,23 @@ describe('llmCall() simulation routing', () => {
 // llmCall — fallback to directOpenAI
 // ──────────────────────────────────────────────────────────────────────────────
 describe('llmCall() fallback behavior', () => {
-  it('falls back to simulation when Locus fails and no OPENAI_API_KEY', async () => {
+  it('falls back to simulation when Locus and OpenAI fail but simulationType is set', async () => {
     mockIsSimulation.mockReturnValue(false);
     mockWrapped.mockRejectedValueOnce(new Error('Locus unavailable'));
     vi.stubEnv('OPENAI_API_KEY', '');
     mockSimDecompose.mockResolvedValueOnce('{"subtasks":[]}');
 
-    // Should not throw — falls back
+    // Should not throw — falls back to simulation via simulationType
     const result = await llmCall({
       apiKey: 'key',
       systemPrompt: 'sys',
       userMessage: 'msg',
+      simulationType: 'decompose',
+      simulationContext: { taskDescription: 'Build app' },
     });
 
     expect(typeof result).toBe('string');
+    expect(mockSimDecompose).toHaveBeenCalled();
   });
 });
 
@@ -203,7 +206,7 @@ describe('llmCall() directOpenAI path', () => {
     expect(body.response_format).toBeUndefined();
   });
 
-  it('throws when OpenAI API returns a non-OK response', async () => {
+  it('throws when OpenAI API returns a non-OK response and no simulationType', async () => {
     mockIsSimulation.mockReturnValue(false);
     mockWrapped.mockRejectedValueOnce(new Error('Locus down'));
     vi.stubEnv('OPENAI_API_KEY', 'sk-bad-key');
@@ -214,11 +217,12 @@ describe('llmCall() directOpenAI path', () => {
       text: () => Promise.resolve('Unauthorized'),
     }));
 
+    // Without simulationType, all providers fail → throws
     await expect(llmCall({
       apiKey: 'key',
       systemPrompt: 'sys',
       userMessage: 'msg',
-    })).rejects.toThrow('OpenAI API error 401');
+    })).rejects.toThrow('All LLM providers failed');
   });
 
   it('returns empty string when choices array is empty', async () => {

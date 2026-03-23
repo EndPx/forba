@@ -4,7 +4,7 @@ import { emitter } from '@/lib/events/emitter';
 import { executeTask } from '@/lib/agents/orchestrator';
 import { seedAgents } from '@/lib/agents/registry';
 
-// Vercel serverless max duration (seconds)
+// Vercel serverless max duration — Hobby=10s, Pro=60s
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
       data: { description },
     });
 
-    // Execute task and wait for completion (serverless needs to stay alive)
+    // Execute task synchronously — must complete before response
+    // Simulation mode completes in ~5s, real LLM in ~15-30s
     try {
       await executeTask(task.id);
     } catch (error) {

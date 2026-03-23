@@ -72,7 +72,7 @@ describe('store task operations', () => {
     const t1 = store.createTask('First');
     // Ensure different createdAt by manipulating the stored task
     store.updateTask(t1.id, { createdAt: new Date(Date.now() - 10000).toISOString() });
-    const t2 = store.createTask('Second');
+    store.createTask('Second');
 
     const all = store.getAllTasks();
     expect(all[0].description).toBe('Second');
@@ -144,7 +144,7 @@ describe('store.getStats()', () => {
   it('counts completed and active tasks correctly', () => {
     const t1 = store.createTask('t1');
     const t2 = store.createTask('t2');
-    const t3 = store.createTask('t3');
+    store.createTask('t3');
 
     store.updateTask(t1.id, { status: 'completed' });
     store.updateTask(t2.id, { status: 'in_progress' });
