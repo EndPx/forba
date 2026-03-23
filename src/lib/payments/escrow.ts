@@ -61,7 +61,7 @@ export async function createEscrow(params: {
       let hasSufficientBalance = false;
       try {
         const balance = await getBalance(realApiKey);
-        const balanceNum = parseFloat(balance.balance || balance.usdc_balance || '0');
+        const balanceNum = parseFloat(balance.balance || (balance as unknown as Record<string, string>).usdc_balance || '0');
         hasSufficientBalance = balanceNum >= params.amount;
         if (hasSufficientBalance) {
           escrow.status = 'funded';
