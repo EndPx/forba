@@ -7,15 +7,16 @@ import { Loader2, Send } from 'lucide-react';
 
 interface TaskFormProps {
   onSubmit: (description: string) => Promise<void>;
+  disabled?: boolean;
 }
 
-export function TaskForm({ onSubmit }: TaskFormProps) {
+export function TaskForm({ onSubmit, disabled = false }: TaskFormProps) {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
 
   const handleSubmit = useCallback(async () => {
-    if (!description.trim() || loading) return;
+    if (!description.trim() || loading || disabled) return;
     setLoading(true);
     try {
       await onSubmit(description.trim());
@@ -56,13 +57,13 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
           onBlur={() => setFocused(false)}
           className="min-h-[100px] resize-none text-sm leading-relaxed border-zinc-200 focus-visible:ring-1 focus-visible:ring-zinc-300 focus-visible:border-zinc-300 placeholder:text-zinc-300 bg-white"
           maxLength={2000}
-          disabled={loading}
+          disabled={loading || disabled}
         />
-        {loading && (
+        {(loading || disabled) && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-md">
             <div className="flex items-center gap-2 text-zinc-500">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Dispatching…</span>
+              <span className="text-sm">{disabled ? 'Processing task…' : 'Dispatching…'}</span>
             </div>
           </div>
         )}
@@ -74,7 +75,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
           <span className="text-xs text-zinc-300 select-none hidden sm:inline">⌘ + Enter</span>
           <Button
             onClick={handleSubmit}
-            disabled={!description.trim() || loading}
+            disabled={!description.trim() || loading || disabled}
             size="sm"
             className="bg-zinc-900 hover:bg-zinc-700 text-white text-xs px-4 disabled:opacity-30"
           >
