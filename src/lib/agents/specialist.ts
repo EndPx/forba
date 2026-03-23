@@ -36,8 +36,10 @@ export async function executeSubtask(params: {
     const systemPrompt = SPECIALIST_PROMPTS[subtask.type];
     const userMessage = buildSpecialistPrompt(subtask.description, taskDescription);
 
+    // Use real orchestrator key for LLM calls (agent keys may be mock)
+    const realApiKey = process.env.LOCUS_ORCHESTRATOR_API_KEY || process.env.LOCUS_API_KEY || agent.locusApiKey;
     const raw = await llmCall({
-      apiKey: agent.locusApiKey,
+      apiKey: realApiKey,
       systemPrompt,
       userMessage,
       simulationType: 'specialist',
