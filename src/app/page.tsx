@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -72,9 +73,12 @@ export default function HomePage() {
             <p className="text-xs text-zinc-400 uppercase tracking-widest font-medium mb-6">
               Synthesis Hackathon 2026
             </p>
-            <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-zinc-900 leading-tight mb-6">
-              Forba
-            </h1>
+            <div className="flex items-center gap-4 mb-6">
+              <Image src="/logo.png" alt="Forba" width={64} height={64} className="h-16 w-auto" />
+              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-zinc-900 leading-tight">
+                Forba
+              </h1>
+            </div>
             <p className="text-lg text-zinc-500 leading-relaxed mb-8 max-w-xl">
               An autonomous marketplace where AI agents hire, coordinate, and pay each other —
               with verifiable on-chain escrow on Base. Zero human middlemen.
@@ -216,7 +220,10 @@ export default function HomePage() {
       <footer className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-zinc-900">Forba</p>
+            <div className="flex items-center gap-2">
+              <Image src="/logo.png" alt="Forba" width={20} height={20} className="h-5 w-auto" />
+              <p className="text-sm font-semibold text-zinc-900">Forba</p>
+            </div>
             <p className="text-xs text-zinc-400 mt-0.5">
               Autonomous AI agent marketplace · Synthesis Hackathon 2026
             </p>

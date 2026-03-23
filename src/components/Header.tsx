@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -100,8 +101,9 @@ export function Header() {
       <div className="container mx-auto flex h-13 items-center px-4 gap-6" style={{ height: '52px' }}>
 
         {/* Logo */}
-        <Link href="/" className="font-semibold text-sm text-zinc-900 tracking-tight shrink-0">
-          Forba
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Image src="/logo.png" alt="Forba" width={28} height={28} className="h-7 w-auto" />
+          <span className="font-semibold text-sm text-zinc-900 tracking-tight">Forba</span>
         </Link>
 
         {/* Divider */}
