@@ -4,6 +4,9 @@ import { emitter } from '@/lib/events/emitter';
 import { executeTask } from '@/lib/agents/orchestrator';
 import { seedAgents } from '@/lib/agents/registry';
 
+// Vercel serverless max duration (seconds)
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -29,13 +32,17 @@ export async function POST(request: NextRequest) {
       data: { description },
     });
 
-    // Execute asynchronously (non-blocking)
-    executeTask(task.id).catch((error) => {
+    // Execute task and wait for completion (serverless needs to stay alive)
+    try {
+      await executeTask(task.id);
+    } catch (error) {
       console.error('Task execution error:', error);
-    });
+    }
 
+    // Return final task state
+    const finalTask = store.getTask(task.id);
     return NextResponse.json(
-      { taskId: task.id, status: task.status },
+      { taskId: task.id, status: finalTask?.status || task.status },
       { status: 202 }
     );
   } catch (error) {
