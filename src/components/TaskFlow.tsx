@@ -63,25 +63,33 @@ const STATUS_TEXT: Record<string, string> = {
 
 const isActive = (status: string) => ['assigned', 'in_progress', 'working'].includes(status);
 
-export function TaskFlow({ taskId, events }: { taskId: string | null; events: Array<{ type: string; taskId?: string }> }) {
+export function TaskFlow({ taskId, initialData }: { taskId: string | null; events?: Array<{ type: string; taskId?: string }>; initialData?: Record<string, unknown> | null }) {
   const [task, setTask] = useState<TaskDetailData | null>(null);
   const [expandedSubtask, setExpandedSubtask] = useState<string | null>(null);
 
+  // Use initialData from POST response (avoids Vercel stateless GET 404)
+  useEffect(() => {
+    if (initialData && initialData.id === taskId) {
+      setTask(initialData as unknown as TaskDetailData);
+    }
+  }, [initialData, taskId]);
+
   useEffect(() => {
     if (!taskId) return;
+    // Skip fetch if we already have data from initialData
+    if (task && task.id === taskId) return;
     const fetchTask = async () => {
       try {
         const res = await fetch(`/api/tasks/${taskId}`);
+        if (!res.ok) return; // Don't set error response as task data
         const data = await res.json();
-        setTask(data);
+        if (data && data.subtasks) setTask(data);
       } catch (error) {
         console.error('Failed to fetch task:', error);
       }
     };
     fetchTask();
-    const relevantEvent = events.find((e) => e.taskId === taskId);
-    if (relevantEvent) fetchTask();
-  }, [taskId, events]);
+  }, [taskId, task]);
 
   if (!taskId) return null;
 
@@ -96,8 +104,9 @@ export function TaskFlow({ taskId, events }: { taskId: string | null; events: Ar
     );
   }
 
-  const completedCount = getCompletedCount(task.subtasks);
-  const totalCount = task.subtasks.length;
+  const subtasks = task.subtasks || [];
+  const completedCount = getCompletedCount(subtasks);
+  const totalCount = subtasks.length;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
@@ -128,19 +137,19 @@ export function TaskFlow({ taskId, events }: { taskId: string | null; events: Ar
       </CardHeader>
 
       <CardContent className="px-4 pb-4 space-y-0">
-        {task.subtasks.length === 0 && (
+        {subtasks.length === 0 && (
           <div className="py-8 flex flex-col items-center gap-2">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-300" />
             <p className="text-xs text-zinc-400">Decomposing task into subtasks…</p>
           </div>
         )}
 
-        {task.subtasks.map((subtask, index) => {
+        {subtasks.map((subtask, index) => {
           const expanded = expandedSubtask === subtask.id;
           const active = isActive(subtask.status);
           const statusLabel = STATUS_LABEL[subtask.status] || subtask.status;
           const statusText = STATUS_TEXT[subtask.status] || 'text-zinc-400';
-          const isLast = index === task.subtasks.length - 1;
+          const isLast = index === subtasks.length - 1;
 
           return (
             <div key={subtask.id} className="relative">

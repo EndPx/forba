@@ -47,7 +47,8 @@ export function useTasks() {
     try {
       const res = await fetch('/api/tasks');
       const data = await res.json();
-      setTasks(data);
+      // Guard: only set tasks if we got an array (Vercel may return empty or error)
+      if (Array.isArray(data)) setTasks(data);
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
     } finally {
@@ -83,8 +84,9 @@ export function useTaskDetail(taskId: string | null) {
     setLoading(true);
     try {
       const res = await fetch(`/api/tasks/${taskId}`);
+      if (!res.ok) return; // Don't set error response as task data
       const data = await res.json();
-      setTask(data);
+      if (data && data.subtasks) setTask(data);
     } catch (error) {
       console.error('Failed to fetch task:', error);
     } finally {

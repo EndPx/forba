@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const { events, connected } = useSSE();
   const { tasks, fetchTasks, createTask } = useTasks();
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [cachedTaskData, setCachedTaskData] = useState<Record<string, unknown> | null>(null);
   const [agentCount, setAgentCount] = useState<number | string>('—');
 
   useEffect(() => {
@@ -35,7 +36,10 @@ export default function DashboardPage() {
 
   const handleSubmit = async (description: string) => {
     const result = await createTask(description);
-    if (result?.taskId) setActiveTaskId(result.taskId);
+    if (result?.taskId) {
+      setActiveTaskId(result.taskId);
+      if (result.task) setCachedTaskData(result.task);
+    }
   };
 
   const completedTasks  = tasks.filter((t) => t.status === 'completed' || t.status === 'approved').length;
@@ -75,7 +79,7 @@ export default function DashboardPage() {
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <TaskFlow taskId={activeTaskId} events={events} />
+          <TaskFlow taskId={activeTaskId} events={events} initialData={cachedTaskData} />
           <PaymentLog />
         </div>
         <LiveFeed events={events} connected={connected} />
