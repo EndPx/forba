@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from './StatusBadge';
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { getStoredTask } from '@/lib/storage/local';
 
 interface SubtaskData {
   id: string;
@@ -78,10 +79,19 @@ export function TaskFlow({ taskId, initialData }: { taskId: string | null; event
     if (!taskId) return;
     // Skip fetch if we already have data from initialData
     if (task && task.id === taskId) return;
+
+    // Try localStorage first (survives refresh on Vercel)
+    const stored = getStoredTask(taskId);
+    if (stored) {
+      setTask(stored as unknown as TaskDetailData);
+      return;
+    }
+
+    // Fallback: try server API
     const fetchTask = async () => {
       try {
         const res = await fetch(`/api/tasks/${taskId}`);
-        if (!res.ok) return; // Don't set error response as task data
+        if (!res.ok) return;
         const data = await res.json();
         if (data && data.subtasks) setTask(data);
       } catch (error) {

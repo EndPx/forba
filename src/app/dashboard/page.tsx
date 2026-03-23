@@ -12,8 +12,20 @@ import { StatusBadge } from '@/components/StatusBadge';
 export default function DashboardPage() {
   const { events, connected } = useSSE();
   const { tasks, fetchTasks, createTask } = useTasks();
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('forba_active_task') || null;
+    }
+    return null;
+  });
   const [cachedTaskData, setCachedTaskData] = useState<Record<string, unknown> | null>(null);
+
+  // Persist active task ID
+  useEffect(() => {
+    if (activeTaskId) {
+      localStorage.setItem('forba_active_task', activeTaskId);
+    }
+  }, [activeTaskId]);
   const [agentCount, setAgentCount] = useState<number | string>('—');
 
   useEffect(() => {

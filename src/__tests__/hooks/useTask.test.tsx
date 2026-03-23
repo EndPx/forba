@@ -5,6 +5,18 @@ import { useTasks, useTaskDetail } from '@/hooks/useTask';
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
+// Mock localStorage
+const localStore: Record<string, string> = {};
+const mockLocalStorage = {
+  getItem: vi.fn((key: string) => localStore[key] ?? null),
+  setItem: vi.fn((key: string, val: string) => { localStore[key] = val; }),
+  removeItem: vi.fn((key: string) => { delete localStore[key]; }),
+  clear: vi.fn(() => { Object.keys(localStore).forEach(k => delete localStore[k]); }),
+  get length() { return Object.keys(localStore).length; },
+  key: vi.fn((i: number) => Object.keys(localStore)[i] ?? null),
+};
+vi.stubGlobal('localStorage', mockLocalStorage);
+
 function makeResponse(body: unknown, status = 200) {
   return Promise.resolve({
     ok: status < 400,
@@ -15,6 +27,7 @@ function makeResponse(body: unknown, status = 200) {
 
 beforeEach(() => {
   mockFetch.mockReset();
+  mockLocalStorage.clear();
 });
 
 afterEach(() => {
@@ -48,32 +61,34 @@ describe('useTasks()', () => {
     expect(result.current.tasks[0].id).toBe('t1');
   });
 
-  it('fetchTasks() sets loading=true during fetch then false after', async () => {
-    const loadingStates: boolean[] = [];
-    mockFetch.mockImplementationOnce(() => {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10);
-      });
-    });
+  it('fetchTasks() falls back to localStorage when server returns empty', async () => {
+    // Pre-populate localStorage
+    const storedTask = {
+      id: 'stored-1',
+      description: 'Stored task',
+      status: 'completed',
+      subtasks: [{ id: 's1', taskId: 'stored-1', description: 'sub', type: 'code', status: 'approved' }],
+      createdAt: 'now',
+    };
+    localStore['forba_tasks'] = JSON.stringify([storedTask]);
+
+    mockFetch.mockReturnValueOnce(makeResponse([]));
 
     const { result } = renderHook(() => useTasks());
 
-    const promise = act(async () => {
-      const p = result.current.fetchTasks();
-      loadingStates.push(result.current.loading);
-      await p;
+    await act(async () => {
+      await result.current.fetchTasks();
     });
 
-    await promise;
-    expect(result.current.loading).toBe(false);
+    expect(result.current.tasks).toHaveLength(1);
+    expect(result.current.tasks[0].id).toBe('stored-1');
   });
 
-  it('fetchTasks() handles network errors gracefully', async () => {
+  it('fetchTasks() handles network errors and uses localStorage', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
     const { result } = renderHook(() => useTasks());
 
-    // Should not throw
     await act(async () => {
       await result.current.fetchTasks();
     });
@@ -82,15 +97,20 @@ describe('useTasks()', () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it('createTask() sends POST with description and refreshes tasks', async () => {
-    const createdResponse = { taskId: 'new-task-id', status: 'pending' };
-    const refreshedTasks = [
-      { id: 'new-task-id', description: 'My task', status: 'pending', subtaskCount: 0, completedSubtasks: 0, createdAt: 'now' },
-    ];
+  it('createTask() sends POST with description and saves to localStorage', async () => {
+    const createdResponse = {
+      taskId: 'new-task-id',
+      status: 'completed',
+      task: {
+        id: 'new-task-id',
+        description: 'My task',
+        status: 'completed',
+        subtasks: [],
+        createdAt: 'now',
+      },
+    };
 
-    mockFetch
-      .mockReturnValueOnce(makeResponse(createdResponse, 202))
-      .mockReturnValueOnce(makeResponse(refreshedTasks));
+    mockFetch.mockReturnValueOnce(makeResponse(createdResponse, 202));
 
     const { result } = renderHook(() => useTasks());
 
@@ -99,17 +119,17 @@ describe('useTasks()', () => {
       created = await result.current.createTask('My task');
     });
 
-    // POST called first
     expect(mockFetch).toHaveBeenCalledWith('/api/tasks', expect.objectContaining({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ description: 'My task' }),
     }));
 
-    // Then GET called to refresh
-    expect(mockFetch).toHaveBeenCalledWith('/api/tasks');
     expect(created).toEqual(createdResponse);
-    expect(result.current.tasks).toHaveLength(1);
+    // Task saved to localStorage
+    const stored = JSON.parse(localStore['forba_tasks'] || '[]');
+    expect(stored).toHaveLength(1);
+    expect(stored[0].id).toBe('new-task-id');
   });
 
   it('createTask() throws on fetch error', async () => {
@@ -156,6 +176,28 @@ describe('useTaskDetail()', () => {
     expect(result.current.task!.id).toBe('task-123');
   });
 
+  it('falls back to localStorage when server returns 404', async () => {
+    const storedTask = {
+      id: 'task-404',
+      description: 'Stored detail',
+      status: 'completed',
+      subtasks: [{ id: 's1', taskId: 'task-404', description: 'sub', type: 'code', status: 'approved' }],
+      createdAt: 'now',
+    };
+    localStore['forba_tasks'] = JSON.stringify([storedTask]);
+
+    mockFetch.mockReturnValueOnce(makeResponse({ error: 'Not found' }, 404));
+
+    const { result } = renderHook(() => useTaskDetail('task-404'));
+
+    await act(async () => {
+      await result.current.fetchTask();
+    });
+
+    expect(result.current.task).not.toBeNull();
+    expect(result.current.task!.id).toBe('task-404');
+  });
+
   it('does not fetch when taskId is null', async () => {
     const { result } = renderHook(() => useTaskDetail(null));
 
@@ -167,7 +209,7 @@ describe('useTaskDetail()', () => {
     expect(result.current.task).toBeNull();
   });
 
-  it('handles fetch errors gracefully', async () => {
+  it('handles fetch errors gracefully with localStorage fallback', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Not found'));
 
     const { result } = renderHook(() => useTaskDetail('bad-id'));

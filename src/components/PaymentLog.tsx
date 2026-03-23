@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from 'lucide-react';
+import { getStoredEscrows, saveEscrows, type StoredEscrow } from '@/lib/storage/local';
 
 interface EscrowData {
   id: string;
@@ -43,17 +44,25 @@ export function PaymentLog() {
   const [escrows, setEscrows] = useState<EscrowData[]>([]);
 
   useEffect(() => {
+    // Load from localStorage first (survives Vercel serverless reset)
+    const stored = getStoredEscrows();
+    if (stored.length > 0) setEscrows(stored);
+
     const fetchEscrows = async () => {
       try {
         const res = await fetch('/api/payments');
+        if (!res.ok) return; // Don't overwrite with error
         const data = await res.json();
-        setEscrows(data);
-      } catch (error) {
-        console.error('Failed to fetch payments:', error);
+        if (Array.isArray(data) && data.length > 0) {
+          setEscrows(data);
+          saveEscrows(data as StoredEscrow[]);
+        }
+      } catch {
+        // Network error — keep localStorage data
       }
     };
     fetchEscrows();
-    const interval = setInterval(fetchEscrows, 5000);
+    const interval = setInterval(fetchEscrows, 10000);
     return () => clearInterval(interval);
   }, []);
 
