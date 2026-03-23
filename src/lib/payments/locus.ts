@@ -16,7 +16,7 @@ async function locusRequest<T>(
   const url = `${config.locusBaseUrl}${endpoint}`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(apiKey ? { 'x-api-key': apiKey } : {}),
+    ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
   };
 
   const response = await fetch(url, {
@@ -29,7 +29,15 @@ async function locusRequest<T>(
     throw new LocusApiError(response.status, `Locus API error ${response.status}: ${body}`);
   }
 
-  return response.json() as Promise<T>;
+  const json = await response.json();
+  // Locus wraps responses in { success, data } envelope
+  if (json.success === true && json.data !== undefined) {
+    return json.data as T;
+  }
+  if (json.success === false) {
+    throw new LocusApiError(response.status, json.message || json.error || 'Locus API error');
+  }
+  return json as T;
 }
 
 export async function registerAgent(name: string, email?: string): Promise<LocusRegisterResponse> {
@@ -94,7 +102,7 @@ export async function wrappedOpenAICall(
   const response = await locusRequest<{
     choices: Array<{ message: { content: string } }>;
   }>(
-    '/wrapped/openai/chat/completions',
+    '/wrapped/openai/chat',
     {
       method: 'POST',
       body: JSON.stringify(body),
